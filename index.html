@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Akhrorjon Rakhmonov — AI Engineer | Computer Vision, Edge AI</title>
+<meta name="description" content="AI Engineer, Ph.D. Computer vision for video anomaly and collision detection, deployed on NVIDIA Jetson and Rockchip NPU edge hardware.">
+<meta name="author" content="Akhrorjon Rakhmonov">
+<meta name="keywords" content="Akhrorjon Rakhmonov, AI Engineer, Computer Vision, Edge AI, Video Anomaly Detection, VideoMAE, TensorRT, RKNN, Jetson, PyTorch, Seoul">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230B0A10'/><circle cx='50' cy='50' r='27' fill='%23DD513A'/><circle cx='50' cy='50' r='11' fill='%23FCA50A'/></svg>">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Akhrorjon Rakhmonov — AI Engineer | Computer Vision, Edge AI">
+<meta property="og:description" content="Vision models that catch the moment something goes wrong in a video — running on the device, not in the cloud.">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/111276685?v=4">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=Manrope:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   Palette: the `inferno` colormap — what an anomaly heatmap is
+   drawn in. Dark end for the page, hot end for the accents.
+   ============================================================ */
+:root{
+  --bg:#080A10;
+  --panel:#0F131C;
+  --panel-2:#151B26;
+  --line:#222A38;
+  --text:#E9EDF4;
+  --dim:#8B95A8;
+  --steel:#7FA6E8;
+  --ice:#79D7F0;
+  --plum:#4A0F6B;
+  --berry:#932667;
+  --ember:#DD513A;
+  --flare:#FCA50A;
+  --pale:#FCFFA4;
+
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,sans-serif;
+  --util:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --gutter:clamp(1.15rem,5vw,4.5rem);
+  --heat:linear-gradient(90deg,var(--plum),var(--berry),var(--ember),var(--flare));
+  --radius:14px;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--body);font-size:clamp(.98rem,.95rem + .16vw,1.05rem);
+  line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+html[lang="ko"] body{font-family:"Noto Sans KR",var(--body),sans-serif;line-height:1.85}
+html[lang="ko"] h1,html[lang="ko"] h2,html[lang="ko"] h3{font-family:"Noto Sans KR",sans-serif;letter-spacing:-.02em}
+
+a{color:var(--flare);text-decoration:none}
+a:hover{color:var(--ember)}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--flare);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:var(--gutter)}
+
+.eyebrow{font-family:var(--util);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ember);margin:0 0 .8rem}
+.sec-head{margin-bottom:clamp(2rem,4vw,3rem)}
+h2{font-family:var(--display);font-variation-settings:"wdth" 110;font-weight:700;
+   font-size:clamp(2rem,1.3rem + 2.6vw,3.2rem);line-height:1;letter-spacing:-.035em;margin:0 0 .7rem}
+.sec-head p{margin:0;color:var(--dim);max-width:52ch;font-size:1.02rem}
+
+/* ---------------- header ---------------- */
+.bar{position:sticky;top:0;z-index:70;background:rgba(11,10,16,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:66px}
+.logo{font-family:var(--util);font-size:.86rem;letter-spacing:.02em;color:var(--text)}
+.logo b{color:var(--ember);font-weight:400}
+.bar-right{display:flex;align-items:center;gap:1.2rem}
+.bar nav{display:flex;gap:clamp(.8rem,1.9vw,1.7rem)}
+.bar nav a{font-family:var(--util);font-size:.73rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.bar nav a:hover{color:var(--flare)}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.lang button{font-family:var(--util);font-size:.67rem;letter-spacing:.08em;padding:.35rem .62rem;border:0;background:transparent;color:var(--dim);cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ember);color:#120C08}
+.burger{display:none;border:1px solid var(--line);background:transparent;border-radius:8px;padding:.4rem .6rem;color:var(--text);font-size:1rem;line-height:1;cursor:pointer}
+@media (max-width:900px){
+  .bar nav{position:absolute;top:66px;left:0;right:0;flex-direction:column;gap:0;background:var(--bg);border-bottom:1px solid var(--line);padding:.4rem var(--gutter) 1rem}
+  .bar nav[hidden]{display:none}
+  .bar nav a{padding:.7rem 0;border-bottom:1px solid var(--line)}
+  .burger{display:block}
+}
+
+/* ---------------- hero ---------------- */
+.hero{position:relative;padding-block:clamp(3rem,8vw,6rem) clamp(2rem,5vw,3.5rem);overflow:hidden}
+#field{position:absolute;inset:0;width:100%;height:100%;opacity:.85;pointer-events:none;
+       -webkit-mask-image:radial-gradient(115% 90% at 62% 45%,#000 0%,rgba(0,0,0,.55) 55%,transparent 88%);
+       mask-image:radial-gradient(115% 90% at 62% 45%,#000 0%,rgba(0,0,0,.55) 55%,transparent 88%)}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(90deg,rgba(127,166,232,.05) 1px,transparent 1px) 0 0/72px 72px,
+    linear-gradient(rgba(127,166,232,.05) 1px,transparent 1px) 0 0/72px 72px;
+  -webkit-mask-image:radial-gradient(90% 70% at 55% 45%,#000,transparent 80%);
+  mask-image:radial-gradient(90% 70% at 55% 45%,#000,transparent 80%)}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:clamp(2rem,5vw,4rem);align-items:center}
+h1{font-family:var(--display);font-variation-settings:"wdth" 108;font-weight:800;
+   font-size:clamp(2.5rem,1rem + 6.4vw,5.4rem);line-height:.92;letter-spacing:-.04em;margin:0 0 1.2rem}
+h1 span{display:block;background:var(--heat);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.intro{margin:0;color:var(--dim);max-width:50ch}
+.hero .cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.9rem}
+.btn{font-family:var(--util);font-size:.76rem;letter-spacing:.06em;padding:.8rem 1.3rem;border-radius:999px;border:1px solid var(--line);transition:.18s ease}
+.btn.solid{background:var(--ember);border-color:var(--ember);color:#120C08;font-weight:500}
+.btn.solid:hover{background:var(--flare);border-color:var(--flare);color:#120C08;transform:translateY(-2px)}
+.btn.ghost{color:var(--text);background:transparent}
+.btn.ghost:hover{border-color:var(--flare);color:var(--flare);transform:translateY(-2px)}
+
+/* portrait in a detection frame */
+.portrait{position:relative;justify-self:center;width:min(320px,80vw)}
+.portrait img{border-radius:var(--radius);border:1px solid var(--line);background:var(--panel)}
+.portrait .corner{position:absolute;width:22px;height:22px;border:2px solid var(--flare)}
+.portrait .c1{top:-7px;left:-7px;border-right:0;border-bottom:0;border-radius:6px 0 0 0}
+.portrait .c2{top:-7px;right:-7px;border-left:0;border-bottom:0;border-radius:0 6px 0 0}
+.portrait .c3{bottom:-7px;left:-7px;border-right:0;border-top:0;border-radius:0 0 0 6px}
+.portrait .c4{bottom:-7px;right:-7px;border-left:0;border-top:0;border-radius:0 0 6px 0}
+.portrait .tag{position:absolute;top:-14px;left:14px;background:var(--ember);color:#120C08;
+  font-family:var(--util);font-size:.62rem;letter-spacing:.1em;padding:.2rem .55rem;border-radius:4px}
+
+/* ---------------- stack strip ---------------- */
+.stack{padding-block:clamp(1.5rem,3vw,2.4rem)}
+.stack h3{font-family:var(--util);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);text-align:center;font-weight:400;margin:0 0 1.4rem}
+.icons{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(1.1rem,3.5vw,2.6rem);align-items:center}
+.icons figure{margin:0;text-align:center;width:70px}
+.icons img{height:34px;width:auto;margin:0 auto;filter:grayscale(1) opacity(.62);transition:.2s ease}
+.icons figure:hover img{filter:none;transform:translateY(-3px)}
+.icons figcaption{font-family:var(--util);font-size:.6rem;color:var(--dim);margin-top:.5rem;letter-spacing:.06em}
+
+/* ---------------- marquee ---------------- */
+.marquee{border-block:1px solid var(--line);background:var(--panel);overflow:hidden;padding:.85rem 0;margin-top:clamp(1.5rem,4vw,2.5rem)}
+.marquee div{display:flex;width:max-content;animation:slide 38s linear infinite}
+.marquee:hover div{animation-play-state:paused}
+.marquee span{font-family:var(--util);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding-inline:1.4rem;white-space:nowrap}
+.marquee span::after{content:"◆";color:var(--berry);margin-left:2.8rem;font-size:.6rem;vertical-align:middle}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------------- sections ---------------- */
+section{padding-block:clamp(3rem,7vw,5.5rem)}
+
+/* projects */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr));gap:1.3rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:.22s ease}
+.card:hover{transform:translateY(-4px);border-color:var(--berry);background:var(--panel-2)}
+.thumb{height:132px;position:relative;background:linear-gradient(180deg,#0C111A,#090C13);border-bottom:1px solid var(--line);overflow:hidden}
+.thumb svg{width:100%;height:100%;display:block;opacity:.88;transition:opacity .22s ease}
+.card:hover .thumb svg{opacity:1}
+.thumb .num{position:absolute;right:14px;top:9px;font-family:var(--util);
+  font-size:.72rem;letter-spacing:.14em;color:var(--dim);opacity:.75;line-height:1}
+.card .body{padding:1.3rem 1.35rem 1.4rem;display:flex;flex-direction:column;gap:.7rem;flex:1}
+.badge{font-family:var(--util);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--flare);
+  border:1px solid rgba(252,165,10,.35);border-radius:999px;padding:.18rem .55rem;align-self:flex-start}
+.card h3{margin:0;font-family:var(--display);font-variation-settings:"wdth" 104;font-size:1.14rem;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+.card h3 a{color:var(--text)}
+.card:hover h3 a{color:var(--flare)}
+.card p{margin:0;color:var(--dim);font-size:.94rem;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:0;list-style:none}
+.tags li{font-family:var(--util);font-size:.62rem;letter-spacing:.05em;color:var(--dim);background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:.2rem .5rem}
+.more{text-align:center;margin-top:2.2rem}
+
+/* timeline */
+.tl{margin:0;padding:0;list-style:none;display:grid;gap:1.1rem}
+.tl > li{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1.5rem 1.6rem}
+.tl .top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem 1rem;align-items:baseline}
+.tl h3{margin:0;font-family:var(--display);font-variation-settings:"wdth" 104;font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+.tl .when{font-family:var(--util);font-size:.7rem;letter-spacing:.08em;color:var(--ember);white-space:nowrap}
+.tl .org{font-family:var(--util);font-size:.72rem;color:var(--dim);letter-spacing:.04em;margin:.35rem 0 .9rem;display:block}
+.tl .lead{margin:0 0 .9rem;color:var(--text);font-size:.98rem}
+.tl ul{margin:0;padding:0;list-style:none;display:grid;gap:.45rem}
+.tl ul li{position:relative;padding-left:1.15rem;color:var(--dim);font-size:.94rem}
+.tl ul li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:1px;background:var(--berry);transform:rotate(45deg)}
+
+/* alternating vertical timeline (experience) */
+.timeline{--arm:2.8rem;--dot:14px;display:block;gap:0;position:relative;padding-block:.5rem}
+.timeline::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);
+  background:linear-gradient(180deg,transparent,var(--line) 7%,var(--line) 93%,transparent)}
+.timeline > li{position:relative;width:calc(50% - var(--arm));margin-bottom:1.8rem}
+.timeline > li:last-child{margin-bottom:0}
+.timeline > li:nth-child(odd){margin-right:auto}
+.timeline > li:nth-child(even){margin-left:auto}
+/* node on the line */
+.timeline > li::before{content:"";position:absolute;top:2.1rem;width:var(--dot);height:var(--dot);
+  border-radius:50%;background:var(--bg);border:2px solid var(--ice);
+  box-shadow:0 0 0 5px rgba(121,215,240,.12);z-index:2}
+.timeline > li:nth-child(odd)::before{right:calc(-1 * (var(--arm) + var(--dot) / 2 + 1px))}
+.timeline > li:nth-child(even)::before{left:calc(-1 * (var(--arm) + var(--dot) / 2 + 1px))}
+/* connector from card to the line */
+.timeline > li::after{content:"";position:absolute;top:calc(2.1rem + var(--dot) / 2 - 1px);
+  width:var(--arm);height:2px;background:var(--line)}
+.timeline > li:nth-child(odd)::after{right:calc(-1 * var(--arm))}
+.timeline > li:nth-child(even)::after{left:calc(-1 * var(--arm))}
+.timeline > li:hover::before{border-color:var(--flare);box-shadow:0 0 0 5px rgba(252,165,10,.14)}
+
+@media (max-width:860px){
+  .timeline{--arm:2.2rem}
+  .timeline::before{left:8px;transform:none}
+  .timeline > li{width:auto;margin-left:var(--arm)!important;margin-right:0!important}
+  .timeline > li:nth-child(odd)::before,
+  .timeline > li:nth-child(even)::before{left:calc(-1 * var(--arm) + 8px - var(--dot) / 2);right:auto}
+  .timeline > li:nth-child(odd)::after,
+  .timeline > li:nth-child(even)::after{left:calc(-1 * var(--arm) + 9px);right:auto;width:calc(var(--arm) - 9px)}
+}
+
+/* papers */
+.pubs{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.pubs li{border-bottom:1px solid var(--line)}
+.pubs a{display:grid;grid-template-columns:5rem 1fr auto;gap:1.2rem;align-items:baseline;padding:1.15rem 0;color:var(--text)}
+.pubs a:hover{color:var(--flare)}
+.pubs .yr{font-family:var(--util);font-size:.72rem;color:var(--ember);letter-spacing:.08em}
+.pubs .venue{display:block;font-family:var(--util);font-size:.68rem;color:var(--dim);margin-top:.3rem}
+.pubs .arrow{font-family:var(--util);font-size:.8rem;color:var(--dim)}
+@media (max-width:600px){.pubs a{grid-template-columns:1fr;gap:.35rem}.pubs .arrow{display:none}}
+
+/* skills grid */
+.skills{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:1.1rem}
+.skills > div{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1.3rem 1.4rem}
+.skills h3{margin:0 0 .9rem;font-family:var(--util);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--flare);font-weight:500}
+.skills ul{margin:0;padding:0;list-style:none;display:grid;gap:.4rem}
+.skills ul li{color:var(--dim);font-size:.93rem}
+
+/* contact */
+.contact-intro{max-width:60ch}
+form{display:grid;gap:1.1rem;margin-top:clamp(2.2rem,5vw,3.4rem);max-width:760px}
+.field label{display:block;font-family:var(--util);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:.4rem}
+.field input,.field textarea{
+  width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:inherit;font-size:.97rem;padding:.8rem .95rem;transition:border-color .18s ease;
+}
+.field textarea{min-height:150px;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--ember);outline:none}
+.count{font-family:var(--util);font-size:.65rem;color:var(--dim);text-align:right;margin:.35rem 0 0}
+form button{
+  justify-self:start;font-family:var(--util);font-size:.76rem;letter-spacing:.06em;
+  background:var(--ember);color:#120C08;border:0;border-radius:999px;padding:.85rem 1.5rem;cursor:pointer;font-weight:500;transition:.18s ease;
+}
+form button:hover{background:var(--flare);transform:translateY(-2px)}
+.socials{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
+.socials a{font-family:var(--util);font-size:.73rem;letter-spacing:.05em;color:var(--text);
+  border:1px solid var(--line);border-radius:999px;padding:.55rem 1rem;transition:.18s ease}
+.socials a:hover{border-color:var(--flare);color:var(--flare)}
+
+footer{border-top:1px solid var(--line);background:var(--panel)}
+footer .wrap{padding-block:1.6rem;display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;
+  font-family:var(--util);font-size:.68rem;color:var(--dim);letter-spacing:.05em}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;text-align:left}
+  .portrait{order:-1;justify-self:start;width:min(230px,60vw)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="#top"><b>&lt;</b>akhra92<b>/&gt;</b></a>
+    <div class="bar-right">
+      <nav id="nav">
+        <a href="#projects"   data-en="Projects"   data-ko="프로젝트">Projects</a>
+        <a href="#experience" data-en="Experience" data-ko="경력">Experience</a>
+        <a href="#papers"     data-en="Papers"     data-ko="논문">Papers</a>
+        <a href="#skills"     data-en="Skills"     data-ko="기술">Skills</a>
+        <a href="#education"  data-en="Education"  data-ko="학력">Education</a>
+        <a href="#contact"    data-en="Contact"    data-ko="연락처">Contact</a>
+      </nav>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="ko" aria-pressed="false">KR</button>
+      </div>
+      <button class="burger" id="burger" aria-expanded="false" aria-controls="nav" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ======================= HERO ======================= -->
+  <section class="hero">
+    <canvas id="field" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div>
+        <p class="eyebrow" data-en="Ph.D. · Ond AI Inc. · Seoul" data-ko="공학박사 · Ond AI Inc. · 서울">Ph.D. · Ond AI Inc. · Seoul</p>
+        <h1>AI Engineer<span data-en="Computer Vision" data-ko="컴퓨터 비전">Computer Vision</span></h1>
+        <p class="intro"
+           data-en="I build vision models that catch the moment something goes wrong in a video — and get them running on the device itself, not in the cloud. Video anomaly detection, dashcam collision detection, and quantized deployment to NVIDIA Jetson and Rockchip NPUs."
+           data-ko="영상 속에서 이상이 발생하는 순간을 포착하는 비전 모델을 개발하고, 이를 클라우드가 아닌 디바이스에서 직접 동작하도록 만듭니다. 영상 이상 탐지, 대시캠 충돌 감지, 그리고 NVIDIA Jetson 및 Rockchip NPU 대상 양자화 배포를 담당합니다."></p>
+        <div class="cta">
+          <a class="btn solid" href="#contact" data-en="Contact me" data-ko="연락하기">Contact me</a>
+          <!-- EDIT: drop your CV pdf next to index.html and point this at it -->
+          <a class="btn ghost" href="cv.pdf" download data-en="Download CV" data-ko="이력서 다운로드">Download CV</a>
+        </div>
+      </div>
+
+      <figure class="portrait">
+        <span class="tag" data-en="person 0.99" data-ko="person 0.99">person 0.99</span>
+        <img src="https://avatars.githubusercontent.com/u/111276685?v=4" width="320" height="320"
+             alt="Akhrorjon Rakhmonov" loading="eager">
+        <span class="corner c1"></span><span class="corner c2"></span>
+        <span class="corner c3"></span><span class="corner c4"></span>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ======================= STACK ======================= -->
+  <div class="stack">
+    <div class="wrap">
+      <h3 data-en="My favorite stack" data-ko="주로 사용하는 스택">My favorite stack</h3>
+      <div class="icons">
+        <figure><img src="https://cdn.simpleicons.org/python/EFEAF2" alt="Python icon"><figcaption>Python</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/pytorch/EFEAF2" alt="PyTorch icon"><figcaption>PyTorch</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/opencv/EFEAF2" alt="OpenCV icon"><figcaption>OpenCV</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/onnx/EFEAF2" alt="ONNX icon"><figcaption>ONNX</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/nvidia/EFEAF2" alt="NVIDIA icon"><figcaption>TensorRT</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/docker/EFEAF2" alt="Docker icon"><figcaption>Docker</figcaption></figure>
+        <figure><img src="https://cdn.simpleicons.org/linux/EFEAF2" alt="Linux icon"><figcaption>Linux</figcaption></figure>
+      </div>
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true">
+    <div id="ticker"></div>
+  </div>
+
+  <!-- ======================= PROJECTS ======================= -->
+  <section id="projects">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Projects" data-ko="프로젝트">Projects</h2>
+        <p data-en="Research code and production pipelines — most of it open on GitHub."
+           data-ko="연구 코드와 실제 제품 파이프라인 — 대부분 GitHub에 공개되어 있습니다."></p>
+      </div>
+
+      <div class="cards">
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <!-- road -->
+              <path d="M34 132 L148 44 L178 44 L306 132 Z" fill="var(--steel)" opacity=".07"/>
+              <path d="M34 132 L148 44 M306 132 L178 44" stroke="var(--steel)" stroke-opacity=".45"/>
+              <path d="M12 44 H308" stroke="var(--steel)" stroke-opacity=".18"/>
+              <path d="M170 132 L163 46" stroke="var(--steel)" stroke-opacity=".3" stroke-dasharray="7 9"/>
+              <!-- distant vehicle -->
+              <rect x="112" y="52" width="30" height="20" rx="2" stroke="var(--steel)" stroke-opacity=".45"/>
+              <!-- tracked vehicle -->
+              <rect x="184" y="62" width="72" height="46" rx="3" stroke="var(--flare)" stroke-opacity=".9"/>
+              <path d="M184 74 V62 H196 M244 62 H256 V74 M256 96 V108 H244 M196 108 H184 V96"
+                    stroke="var(--flare)" stroke-width="2.2"/>
+              <text x="184" y="56" font-size="8" fill="var(--flare)" opacity=".9">collision 0.94</text>
+              <!-- frame timeline -->
+              <rect x="16" y="116" width="288" height="7" rx="3" fill="var(--steel)" opacity=".14"/>
+              <rect x="196" y="116" width="52" height="7" rx="3" fill="var(--flare)" opacity=".85"/>
+              <text x="16" y="110" font-size="7" fill="var(--dim)" opacity=".8">t</text>
+            </svg>
+            <span class="num">01</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Production" data-ko="실무">Production</span>
+            <h3><a href="https://github.com/akhra92/Dashcam-Collision-Detection-Jetson-Rockchip"
+              data-en="Dashcam collision detection" data-ko="대시캠 충돌 감지">Dashcam collision detection</a></h3>
+            <p data-en="Temporal accident detection on dashcam video. A sliding-window R(2+1)D / VideoMAE model pinpoints when a collision happens, with ONNX→TensorRT for Jetson and ONNX→RKNN for Rockchip NPUs."
+               data-ko="대시캠 영상에서 사고 발생 시점을 탐지합니다. 슬라이딩 윈도우 기반 R(2+1)D / VideoMAE 모델로 충돌 시점을 특정하고, Jetson용 ONNX→TensorRT와 Rockchip NPU용 ONNX→RKNN 배포를 지원합니다."></p>
+            <ul class="tags"><li>PyTorch</li><li>VideoMAE</li><li>TensorRT</li><li>RKNN</li><li>ONNX</li></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <!-- filmstrip -->
+              <g stroke="var(--steel)" stroke-opacity=".4">
+                <rect x="14"  y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="52"  y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="90"  y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="128" y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="166" y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="242" y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+                <rect x="280" y="16" width="32" height="26" rx="2" fill="var(--steel)" fill-opacity=".07"/>
+              </g>
+              <rect x="204" y="16" width="32" height="26" rx="2" fill="var(--flare)" fill-opacity=".16"
+                    stroke="var(--flare)" stroke-opacity=".9"/>
+              <!-- threshold -->
+              <path d="M14 84 H306" stroke="var(--ember)" stroke-opacity=".45" stroke-dasharray="4 6"/>
+              <text x="286" y="80" font-size="7" fill="var(--ember)" opacity=".8">τ</text>
+              <!-- anomaly score -->
+              <path d="M14 106 L44 100 L74 108 L104 98 L134 104 L164 96 L188 100 L206 58 L220 62 L236 102 L266 98 L296 106"
+                    stroke="var(--ice)" stroke-width="1.8" stroke-opacity=".9"/>
+              <path d="M220 42 V116" stroke="var(--flare)" stroke-opacity=".5" stroke-dasharray="3 5"/>
+              <circle cx="206" cy="58" r="3.2" fill="var(--flare)"/>
+              <text x="14" y="126" font-size="7" fill="var(--dim)" opacity=".8">anomaly score</text>
+            </svg>
+            <span class="num">02</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Research" data-ko="연구">Research</span>
+            <h3><a href="https://github.com/akhra92/Unsupervised-Video-Anomaly-Detection"
+              data-en="Unsupervised video anomaly detection" data-ko="비지도 영상 이상 탐지">Unsupervised video anomaly detection</a></h3>
+            <p data-en="The PyTorch implementation behind my ETRI Journal paper — detecting anomalous events in video without labelled examples of what an anomaly looks like."
+               data-ko="ETRI Journal 게재 논문의 PyTorch 구현입니다. 이상 상황에 대한 라벨 없이 영상 내 비정상 이벤트를 탐지합니다."></p>
+            <ul class="tags"><li>PyTorch</li><li data-en="Unsupervised" data-ko="비지도 학습">Unsupervised</li><li data-en="Published" data-ko="논문 게재">Published</li></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <text x="30"  y="20" font-size="7.5" fill="var(--dim)" opacity=".9">teacher · frozen</text>
+              <text x="222" y="20" font-size="7.5" fill="var(--dim)" opacity=".9">student</text>
+              <!-- teacher stack (dashed = frozen) -->
+              <g stroke="var(--steel)" stroke-opacity=".55" stroke-dasharray="3 3">
+                <rect x="30" y="30" width="56" height="16" rx="3" fill="var(--steel)" fill-opacity=".08"/>
+                <rect x="30" y="52" width="56" height="16" rx="3" fill="var(--steel)" fill-opacity=".08"/>
+                <rect x="30" y="74" width="56" height="16" rx="3" fill="var(--steel)" fill-opacity=".08"/>
+                <rect x="30" y="96" width="56" height="16" rx="3" fill="var(--steel)" fill-opacity=".08"/>
+              </g>
+              <!-- student stack -->
+              <g stroke="var(--ice)" stroke-opacity=".6">
+                <rect x="234" y="30" width="56" height="16" rx="3" fill="var(--ice)" fill-opacity=".07"/>
+                <rect x="234" y="52" width="56" height="16" rx="3" fill="var(--ice)" fill-opacity=".07"/>
+                <rect x="234" y="74" width="56" height="16" rx="3" fill="var(--ice)" fill-opacity=".07"/>
+                <rect x="234" y="96" width="56" height="16" rx="3" fill="var(--ice)" fill-opacity=".07"/>
+              </g>
+              <!-- comparisons -->
+              <g stroke="var(--steel)" stroke-opacity=".32" stroke-dasharray="4 5">
+                <path d="M86 38 H234"/><path d="M86 60 H234"/><path d="M86 104 H234"/>
+              </g>
+              <path d="M86 82 H234" stroke="var(--flare)" stroke-opacity=".85" stroke-width="1.6"/>
+              <circle cx="160" cy="82" r="9" fill="var(--flare)" fill-opacity=".18" stroke="var(--flare)" stroke-opacity=".9"/>
+              <text x="156.5" y="85.5" font-size="9" fill="var(--flare)">Δ</text>
+            </svg>
+            <span class="num">03</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Research" data-ko="연구">Research</span>
+            <h3><a href="https://github.com/akhra92/Student-Teacher-Model-For-Image-Anomaly-Detection-DINOv2"
+              data-en="Student–teacher anomaly detection" data-ko="학생–교사 모델 이상 탐지">Student–teacher anomaly detection</a></h3>
+            <p data-en="A ViT student distills a frozen DINOv2 teacher on normal images only. At inference, defects surface as feature mismatch between the two networks."
+               data-ko="정상 이미지만으로 ViT 학생 모델이 고정된 DINOv2 교사 모델을 증류 학습합니다. 추론 시 두 네트워크의 특징 불일치로 결함이 드러납니다."></p>
+            <ul class="tags"><li>DINOv2</li><li>ViT</li><li data-en="Distillation" data-ko="지식 증류">Distillation</li></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <defs>
+                <radialGradient id="err" cx="50%" cy="50%">
+                  <stop offset="0%"  stop-color="#FCA50A" stop-opacity=".85"/>
+                  <stop offset="55%" stop-color="#DD513A" stop-opacity=".35"/>
+                  <stop offset="100%" stop-color="#DD513A" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <!-- input feature map -->
+              <g stroke="var(--steel)" stroke-opacity=".4" fill="var(--steel)" fill-opacity=".07">
+                <rect x="14" y="42" width="14" height="14" rx="1.5"/><rect x="31" y="42" width="14" height="14" rx="1.5"/><rect x="48" y="42" width="14" height="14" rx="1.5"/>
+                <rect x="14" y="59" width="14" height="14" rx="1.5"/><rect x="31" y="59" width="14" height="14" rx="1.5"/><rect x="48" y="59" width="14" height="14" rx="1.5"/>
+                <rect x="14" y="76" width="14" height="14" rx="1.5"/><rect x="31" y="76" width="14" height="14" rx="1.5"/><rect x="48" y="76" width="14" height="14" rx="1.5"/>
+              </g>
+              <!-- encoder → bottleneck → decoder -->
+              <g stroke="var(--ice)" stroke-opacity=".55" fill="var(--ice)" fill-opacity=".08">
+                <rect x="82"  y="36" width="11" height="60" rx="3"/>
+                <rect x="103" y="46" width="11" height="40" rx="3"/>
+                <rect x="124" y="55" width="11" height="22" rx="3"/>
+                <rect x="145" y="59" width="9"  height="14" rx="3" fill="var(--ice)" fill-opacity=".28"/>
+                <rect x="164" y="55" width="11" height="22" rx="3"/>
+                <rect x="185" y="46" width="11" height="40" rx="3"/>
+                <rect x="206" y="36" width="11" height="60" rx="3"/>
+              </g>
+              <path d="M66 66 H80 M219 66 H232" stroke="var(--steel)" stroke-opacity=".4"/>
+              <!-- reconstructed map + error -->
+              <g stroke="var(--steel)" stroke-opacity=".4" fill="var(--steel)" fill-opacity=".07">
+                <rect x="238" y="42" width="14" height="14" rx="1.5"/><rect x="255" y="42" width="14" height="14" rx="1.5"/><rect x="272" y="42" width="14" height="14" rx="1.5"/>
+                <rect x="238" y="59" width="14" height="14" rx="1.5"/><rect x="255" y="59" width="14" height="14" rx="1.5"/><rect x="272" y="59" width="14" height="14" rx="1.5"/>
+                <rect x="238" y="76" width="14" height="14" rx="1.5"/><rect x="255" y="76" width="14" height="14" rx="1.5"/><rect x="272" y="76" width="14" height="14" rx="1.5"/>
+              </g>
+              <circle cx="262" cy="66" r="26" fill="url(#err)"/>
+              <text x="14" y="110" font-size="7" fill="var(--dim)" opacity=".85">features → latent → reconstruction → error</text>
+            </svg>
+            <span class="num">04</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Research" data-ko="연구">Research</span>
+            <h3><a href="https://github.com/akhra92/Reconstruction-Based-Image-Anomaly-Detection"
+              data-en="Reconstruction-based anomaly detection" data-ko="복원 기반 이상 탐지">Reconstruction-based anomaly detection</a></h3>
+            <p data-en="A 1×1 convolutional autoencoder reconstructs intermediate ResNet50 feature maps and localizes defects through reconstruction-error heatmaps — the idea this whole site is coloured after."
+               data-ko="1×1 합성곱 오토인코더가 ResNet50 중간 특징 맵을 복원하고, 복원 오차 히트맵으로 결함 위치를 찾아냅니다. 이 사이트의 색상 팔레트가 바로 이 히트맵에서 왔습니다."></p>
+            <ul class="tags"><li>ResNet50</li><li>AutoEncoder</li><li data-en="Localization" data-ko="위치 추정">Localization</li></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <!-- map grid -->
+              <g stroke="var(--steel)" stroke-opacity=".12">
+                <path d="M0 34 H320 M0 66 H320 M0 98 H320"/>
+                <path d="M60 0 V132 M120 0 V132 M180 0 V132 M240 0 V132"/>
+              </g>
+              <!-- route -->
+              <path d="M34 100 C 76 62, 104 108, 150 74 S 244 44, 290 62"
+                    stroke="var(--ice)" stroke-width="1.8" stroke-opacity=".75" stroke-dasharray="6 5"/>
+              <!-- waypoints -->
+              <g fill="var(--steel)" fill-opacity=".85">
+                <circle cx="34" cy="100" r="4"/><circle cx="290" cy="62" r="4"/>
+              </g>
+              <circle cx="112" cy="88" r="3.4" fill="var(--steel)" fill-opacity=".6"/>
+              <!-- selected stop -->
+              <path d="M150 60 a9 9 0 1 1 0.01 0 M150 60 L150 78" stroke="var(--flare)" stroke-width="1.8"/>
+              <circle cx="150" cy="60" r="3.4" fill="var(--flare)"/>
+              <text x="162" y="56" font-size="7.5" fill="var(--flare)" opacity=".9">best window</text>
+              <text x="24" y="122" font-size="7" fill="var(--dim)" opacity=".8">itinerary</text>
+            </svg>
+            <span class="num">05</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Personal" data-ko="개인">Personal</span>
+            <h3><a href="https://github.com/akhra92/Travel-Agent" data-en="Travel Agent" data-ko="트래블 에이전트">Travel Agent</a></h3>
+            <p data-en="A travel planner that recommends when to visit, ranks hotels against stated preferences, and writes an itinerary — classical ML for the ranking, GPT-4 for the plan."
+               data-ko="방문 시기를 추천하고, 사용자 선호에 따라 호텔 순위를 매기며, 여행 일정을 생성하는 플래너입니다. 순위 산정에는 전통적 ML을, 일정 생성에는 GPT-4를 사용합니다."></p>
+            <ul class="tags"><li>GPT-4</li><li>scikit-learn</li><li>Python</li></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+                 fill="none" stroke-linecap="round" font-family="ui-monospace,monospace">
+              <!-- scene tiles -->
+              <g stroke="var(--steel)" stroke-opacity=".4" fill="var(--steel)" fill-opacity=".07">
+                <rect x="16" y="24" width="56" height="40" rx="3"/>
+                <rect x="78" y="24" width="56" height="40" rx="3"/>
+                <rect x="16" y="70" width="56" height="40" rx="3"/>
+                <rect x="78" y="70" width="56" height="40" rx="3"/>
+              </g>
+              <g stroke="var(--ice)" stroke-opacity=".6">
+                <path d="M24 56 L38 38 L48 50 L56 42 L64 56"/>            <!-- mountain -->
+                <path d="M86 52 H126 M90 58 q6 -4 12 0 t12 0"/>            <!-- sea -->
+                <path d="M24 102 V84 h10 v18 M40 102 V78 h12 v24 M56 102 V88 h8 v14"/> <!-- city -->
+                <path d="M92 102 L100 84 L108 102 M108 102 L116 88 L124 102"/>          <!-- forest -->
+              </g>
+              <!-- softmax -->
+              <g>
+                <rect x="164" y="28" width="112" height="9" rx="4.5" fill="var(--flare)" fill-opacity=".9"/>
+                <rect x="164" y="48" width="62"  height="9" rx="4.5" fill="var(--steel)" fill-opacity=".3"/>
+                <rect x="164" y="68" width="38"  height="9" rx="4.5" fill="var(--steel)" fill-opacity=".22"/>
+                <rect x="164" y="88" width="20"  height="9" rx="4.5" fill="var(--steel)" fill-opacity=".16"/>
+              </g>
+              <text x="282" y="36" font-size="7.5" fill="var(--flare)" opacity=".95">.93</text>
+              <text x="164" y="112" font-size="7" fill="var(--dim)" opacity=".8">softmax</text>
+            </svg>
+            <span class="num">06</span>
+          </div>
+          <div class="body">
+            <span class="badge" data-en="Personal" data-ko="개인">Personal</span>
+            <h3><a href="https://github.com/akhra92/Intel-Image-Classification"
+              data-en="Intel image classification" data-ko="Intel 이미지 분류">Intel image classification</a></h3>
+            <p data-en="Scene classification on the Intel dataset with pretrained backbones from timm — a compact reference for transfer-learning setup and training loops."
+               data-ko="timm의 사전학습 백본을 활용한 Intel 데이터셋 장면 분류입니다. 전이 학습 설정과 학습 루프의 간결한 레퍼런스입니다."></p>
+            <ul class="tags"><li>timm</li><li>PyTorch</li><li data-en="Transfer learning" data-ko="전이 학습">Transfer learning</li></ul>
+          </div>
+        </article>
+
+      </div>
+
+      <div class="more">
+        <a class="btn ghost" href="https://github.com/akhra92?tab=repositories"
+           data-en="See all 27 repositories ↗" data-ko="전체 27개 저장소 보기 ↗">See all 27 repositories ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= EXPERIENCE ======================= -->
+  <section id="experience">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Experience" data-ko="경력">Experience</h2>
+        <p data-en="The roles and responsibilities that shaped how I build."
+           data-ko="지금의 개발 방식을 만들어 온 역할과 업무들입니다."></p>
+      </div>
+
+      <!-- EDIT: confirm the dates below -->
+      <ul class="tl timeline">
+        <li>
+          <div class="top">
+            <h3 data-en="AI Engineer" data-ko="AI 엔지니어">AI Engineer</h3>
+            <span class="when" data-en="2024 — Present" data-ko="2024 — 현재">2024 — Present</span>
+          </div>
+          <span class="org" data-en="Ond AI Inc. — Seoul, South Korea (full-time)" data-ko="Ond AI Inc. — 대한민국 서울 (정규직)">Ond AI Inc. — Seoul, South Korea (full-time)</span>
+          <p class="lead" data-en="On-device video intelligence: building accident and anomaly detection models for dashcams and running them on embedded hardware."
+             data-ko="온디바이스 영상 지능 개발: 대시캠용 사고 및 이상 탐지 모델을 개발하고 임베디드 하드웨어에서 구동합니다."></p>
+          <ul>
+            <li data-en="Built a dashcam collision detection pipeline over 31 collision types using VideoMAEv2 with a custom attention-pooling head."
+                data-ko="VideoMAEv2와 커스텀 어텐션 풀링 헤드를 활용해 31종 충돌 유형을 다루는 대시캠 충돌 감지 파이프라인을 구축했습니다."></li>
+            <li data-en="Designed a two-stage YOLOv8 + CNN-LSTM architecture for real-time inference on NVIDIA Jetson with TensorRT INT8 quantization."
+                data-ko="NVIDIA Jetson 실시간 추론을 위해 YOLOv8 + CNN-LSTM 2단계 구조를 설계하고 TensorRT INT8 양자화를 적용했습니다."></li>
+            <li data-en="Ported the same models to Rockchip RK3588 / RK3576 NPUs through ONNX and rknn-toolkit2."
+                data-ko="동일 모델을 ONNX와 rknn-toolkit2를 통해 Rockchip RK3588 / RK3576 NPU로 이식했습니다."></li>
+            <li data-en="Set up and maintain the team's shared multi-user GPU training server — accounts, Docker, storage, and reliability."
+                data-ko="팀의 다중 사용자 GPU 학습 서버를 구축·운영합니다 (계정, Docker, 스토리지, 안정성 관리)."></li>
+          </ul>
+        </li>
+
+        <li>
+          <div class="top">
+            <h3 data-en="Ph.D. Researcher — Computer Vision" data-ko="박사 연구원 — 컴퓨터 비전">Ph.D. Researcher — Computer Vision</h3>
+            <span class="when" data-en="— 2024" data-ko="— 2024">— 2024</span>
+          </div>
+          <span class="org" data-en="Kyungpook National University — Daegu, South Korea" data-ko="경북대학교 — 대한민국 대구">Kyungpook National University — Daegu, South Korea</span>
+          <p class="lead" data-en="Doctoral research on unsupervised anomaly detection in images and video."
+             data-ko="이미지 및 영상의 비지도 이상 탐지에 관한 박사 연구를 수행했습니다."></p>
+          <ul>
+            <li data-en="Published first-author papers in SCIE-indexed journals, including the ETRI Journal."
+                data-ko="ETRI Journal을 포함한 SCIE 등재 저널에 제1저자로 논문을 게재했습니다."></li>
+            <li data-en="Developed reconstruction- and distillation-based detectors that need only normal data at training time."
+                data-ko="학습 시 정상 데이터만 필요한 복원 기반 및 지식 증류 기반 탐지 모델을 개발했습니다."></li>
+            <li data-en="Open-sourced the implementations used in the published work."
+                data-ko="게재 논문에 사용된 구현 코드를 오픈소스로 공개했습니다."></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= PAPERS ======================= -->
+  <section id="papers">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Publications" data-ko="연구 논문">Publications</h2>
+        <p data-en="Peer-reviewed work, first author."
+           data-ko="제1저자로 게재한 동료 심사 논문입니다."></p>
+      </div>
+      <!-- EDIT: put the exact title in, then copy the <li> block for your other papers -->
+      <ul class="pubs">
+        <li>
+          <a href="https://onlinelibrary.wiley.com/doi/10.4218/etrij.2024-0115">
+            <span class="yr">2024</span>
+            <span>
+              <span data-en="Unsupervised video anomaly detection" data-ko="비지도 영상 이상 탐지">Unsupervised video anomaly detection</span>
+              <span class="venue">ETRI Journal · doi 10.4218/etrij.2024-0115</span>
+            </span>
+            <span class="arrow">↗</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= SKILLS ======================= -->
+  <section id="skills">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Tech stack" data-ko="기술 스택">Tech stack</h2>
+        <p data-en="What I reach for, from experiment to deployed device."
+           data-ko="실험 단계부터 디바이스 배포까지 사용하는 도구들입니다."></p>
+      </div>
+      <div class="skills">
+        <div>
+          <h3 data-en="Deep learning" data-ko="딥러닝">Deep learning</h3>
+          <ul>
+            <li>PyTorch · TensorFlow</li>
+            <li data-en="AutoEncoders / VAEs" data-ko="오토인코더 / VAE">AutoEncoders / VAEs</li>
+            <li data-en="Knowledge distillation" data-ko="지식 증류">Knowledge distillation</li>
+            <li data-en="Self-supervised learning" data-ko="자기지도 학습">Self-supervised learning</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-en="Computer vision" data-ko="컴퓨터 비전">Computer vision</h3>
+          <ul>
+            <li>VideoMAE v2 · ViT</li><li>YOLOv8 · DINOv2</li>
+            <li>R(2+1)D · CNN-LSTM</li><li>OpenCV · timm</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-en="Edge deployment" data-ko="엣지 배포">Edge deployment</h3>
+          <ul>
+            <li>NVIDIA Jetson · TensorRT</li><li>Rockchip RK3588 / RK3576</li>
+            <li>RKNN-Toolkit2 · ONNX Runtime</li>
+            <li data-en="INT8 / FP16 quantization" data-ko="INT8 / FP16 양자화">INT8 / FP16 quantization</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-en="Engineering" data-ko="엔지니어링">Engineering</h3>
+          <ul>
+            <li>Python · CUDA</li><li>Docker · Git</li>
+            <li data-en="Linux · GPU server admin" data-ko="리눅스 · GPU 서버 관리">Linux · GPU server admin</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-en="Research areas" data-ko="연구 분야">Research areas</h3>
+          <ul>
+            <li data-en="Anomaly detection" data-ko="이상 탐지">Anomaly detection</li>
+            <li data-en="Video understanding" data-ko="비디오 이해">Video understanding</li>
+            <li data-en="Representation learning" data-ko="표현 학습">Representation learning</li>
+            <li data-en="Model compression" data-ko="모델 경량화">Model compression</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-en="Languages" data-ko="언어">Languages</h3>
+          <ul>
+            <li data-en="Uzbek — native" data-ko="우즈베크어 — 원어민">Uzbek — native</li>
+            <li data-en="English — professional" data-ko="영어 — 업무 가능">English — professional</li>
+            <li data-en="Korean — professional" data-ko="한국어 — 업무 가능">Korean — professional</li>
+            <li data-en="Russian" data-ko="러시아어">Russian</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= EDUCATION ======================= -->
+  <section id="education">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Education" data-ko="학력">Education</h2>
+        <p data-en="Where the research habits came from."
+           data-ko="연구 방식의 기초가 된 과정들입니다."></p>
+      </div>
+      <!-- EDIT: fill in the years, and copy a <li> for your M.Sc. and B.Sc. -->
+      <ul class="tl">
+        <li>
+          <div class="top">
+            <h3 data-en="Ph.D. in Computer Science &amp; Engineering" data-ko="박사 — 컴퓨터학부">Ph.D. in Computer Science &amp; Engineering</h3>
+            <span class="when" data-en="— 2024" data-ko="— 2024">— 2024</span>
+          </div>
+          <span class="org" data-en="Kyungpook National University — Daegu" data-ko="경북대학교 — 대구">Kyungpook National University — Daegu</span>
+          <p class="lead" data-en="Dissertation research on unsupervised anomaly detection in images and video, with first-author publications in SCIE-indexed journals."
+             data-ko="이미지 및 영상의 비지도 이상 탐지를 주제로 학위 연구를 수행했으며, SCIE 등재 저널에 제1저자 논문을 게재했습니다."></p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= CONTACT ======================= -->
+  <section id="contact">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Do you like my work?" data-ko="함께 일해볼까요?">Do you like my work?</h2>
+        <p data-en="Working on video, anomaly detection, or squeezing models onto edge hardware? Say hello — I'm always open to a conversation."
+           data-ko="영상 처리, 이상 탐지, 또는 엣지 하드웨어에서의 모델 경량화와 관련된 일을 하고 계신가요? 언제든 편하게 연락해 주세요."></p>
+      </div>
+
+      <div class="contact-intro">
+        <p style="color:var(--dim);margin:0"
+           data-en="The form opens your own mail app with the message ready to send — nothing is stored on this site."
+           data-ko="아래 양식은 메일 앱을 열어 작성된 내용을 그대로 전달합니다. 이 사이트에는 어떤 정보도 저장되지 않습니다."></p>
+        <div class="socials">
+          <a href="mailto:akhrorrakhmonov@gmail.com">Email</a>
+          <a href="https://www.linkedin.com/in/akhrorjon-rakhmonov/">LinkedIn</a>
+          <a href="https://github.com/akhra92">GitHub</a>
+          <a href="https://akhrorjon.carrd.co" data-en="Résumé" data-ko="이력서">Résumé</a>
+        </div>
+      </div>
+
+      <form id="contact-form" novalidate>
+        <div class="field">
+          <label for="name" data-en="Name *" data-ko="이름 *">Name *</label>
+          <input id="name" name="name" type="text" required autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="email" data-en="E-mail *" data-ko="이메일 *">E-mail *</label>
+          <input id="email" name="email" type="email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="msg" data-en="Message *" data-ko="메시지 *">Message *</label>
+          <textarea id="msg" name="message" maxlength="300" required></textarea>
+          <p class="count"><span id="count">0</span> / 300</p>
+        </div>
+        <button type="submit" data-en="Send message" data-ko="메시지 보내기">Send message</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="yr">2026</span> Akhrorjon Rakhmonov</span>
+    <span data-en="Seoul, South Korea" data-ko="대한민국 서울">Seoul, South Korea</span>
+  </div>
+</footer>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ----------------------------------------------------------------
+   Hero background: a slowly drifting point cloud that wires itself
+   into a graph when points come close — nodes and edges forming and
+   dissolving, the way a latent space looks when you plot it.
+   ---------------------------------------------------------------- */
+(function(){
+  const cv = document.getElementById('field');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const COUNT = 58;      // nodes
+  const LINK  = 132;     // px distance at which an edge appears
+  let w = 0, h = 0, nodes = [];
+
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    w = Math.max(r.width, 1); h = Math.max(r.height, 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function seed(){
+    nodes = Array.from({length: COUNT}, () => ({
+      x: Math.random(), y: Math.random(),
+      vx: (Math.random() - .5) * 0.000035,   // normalized units per ms
+      vy: (Math.random() - .5) * 0.000035,
+      z: 0.35 + Math.random() * 0.65,        // depth → size and brightness
+      hot: Math.random() < 0.16,             // a few "activated" units
+      phase: Math.random() * Math.PI * 2
+    }));
+  }
+
+  function draw(dt, time){
+    ctx.clearRect(0, 0, w, h);
+
+    for (const n of nodes){
+      n.x += n.vx * dt; n.y += n.vy * dt;
+      if (n.x < -0.05) n.x = 1.05; else if (n.x > 1.05) n.x = -0.05;
+      if (n.y < -0.05) n.y = 1.05; else if (n.y > 1.05) n.y = -0.05;
+      n.px = n.x * w; n.py = n.y * h;
+    }
+
+    // edges
+    ctx.lineWidth = 1;
+    for (let i = 0; i < COUNT; i++){
+      for (let j = i + 1; j < COUNT; j++){
+        const a = nodes[i], b = nodes[j];
+        const dx = a.px - b.px, dy = a.py - b.py;
+        const d2 = dx*dx + dy*dy;
+        if (d2 > LINK * LINK) continue;
+        const d = Math.sqrt(d2);
+        const alpha = (1 - d / LINK) * 0.30 * Math.min(a.z, b.z);
+        ctx.strokeStyle = (a.hot || b.hot)
+          ? `rgba(121,215,240,${alpha * 1.25})`
+          : `rgba(127,166,232,${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+      }
+    }
+
+    // nodes
+    for (const n of nodes){
+      const pulse = 0.72 + 0.28 * Math.sin(time * 0.0011 + n.phase);
+      const r = (n.hot ? 2.2 : 1.5) * n.z * pulse + 0.5;
+      if (n.hot){
+        const g = ctx.createRadialGradient(n.px, n.py, 0, n.px, n.py, r * 7);
+        g.addColorStop(0, `rgba(121,215,240,${0.30 * n.z})`);
+        g.addColorStop(1, 'rgba(121,215,240,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(n.px, n.py, r * 7, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = n.hot
+        ? `rgba(160,232,255,${0.85 * n.z})`
+        : `rgba(150,180,225,${0.55 * n.z})`;
+      ctx.beginPath(); ctx.arc(n.px, n.py, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  resize(); seed();
+  addEventListener('resize', () => { resize(); });
+
+  if (REDUCED){ draw(0, 1800); return; }
+  let prev = 0;
+  (function loop(ts){
+    const dt = Math.min(ts - prev, 64); prev = ts;
+    draw(dt, ts);
+    requestAnimationFrame(loop);
+  })(0);
+})();
+
+/* ---------------- inferno colormap helper ---------------- */
+
+/* ---------------- marquee ---------------- */
+(function(){
+  const words = ['Video anomaly detection','Edge AI','VideoMAE','TensorRT','RKNN NPU',
+                 'Self-supervised learning','Jetson','Quantization','DINOv2','Action recognition'];
+  const box = document.getElementById('ticker');
+  const half = words.map(w => `<span>${w}</span>`).join('');
+  box.innerHTML = half + half;   // duplicated so the loop is seamless
+})();
+
+/* ---------------- language toggle ---------------- */
+(function(){
+  const nodes = document.querySelectorAll('[data-en]');
+  const buttons = document.querySelectorAll('.lang button');
+  function setLang(lang){
+    document.documentElement.lang = lang;
+    nodes.forEach(n => { n.textContent = n.dataset[lang] || n.dataset.en; });
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    try { localStorage.setItem('lang', lang); } catch(e){}
+  }
+  buttons.forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  let saved = null;
+  try { saved = localStorage.getItem('lang'); } catch(e){}
+  setLang(saved || (navigator.language && navigator.language.startsWith('ko') ? 'ko' : 'en'));
+})();
+
+/* ---------------- mobile menu ---------------- */
+(function(){
+  const burger = document.getElementById('burger'), nav = document.getElementById('nav');
+  const mq = window.matchMedia('(max-width:900px)');
+  function sync(){ nav.hidden = mq.matches; burger.setAttribute('aria-expanded','false'); }
+  burger.addEventListener('click', () => {
+    const open = nav.hidden;
+    nav.hidden = !open;
+    burger.setAttribute('aria-expanded', String(open));
+  });
+  nav.addEventListener('click', e => { if (e.target.tagName === 'A' && mq.matches) sync(); });
+  mq.addEventListener('change', sync);
+  sync();
+})();
+
+/* ---------------- contact form → mail app ---------------- */
+(function(){
+  const form = document.getElementById('contact-form');
+  const msg = document.getElementById('msg'), count = document.getElementById('count');
+  msg.addEventListener('input', () => { count.textContent = msg.value.length; });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const ko = document.documentElement.lang === 'ko';
+    if (!form.name.value.trim() || !form.email.value.trim() || !msg.value.trim()){
+      alert(ko ? '모든 항목을 입력해 주세요.' : 'Please fill in every field.');
+      return;
+    }
+    const subject = encodeURIComponent(`Portfolio message from ${form.name.value.trim()}`);
+    const body = encodeURIComponent(`${msg.value.trim()}\n\n— ${form.name.value.trim()} (${form.email.value.trim()})`);
+    window.location.href = `mailto:akhrorrakhmonov@gmail.com?subject=${subject}&body=${body}`;
+  });
+})();
+</script>
+</body>
+</html>
